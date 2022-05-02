@@ -1,2 +1,3 @@
  #!/bin/bash
-ts-node ./src/commands.ts
+tsc
+node ./dist/commands.js

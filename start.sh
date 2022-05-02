@@ -1,3 +1,4 @@
  #!/bin/bash
 # For developpement
-nodemon src/index.ts
+tsc
+nodemon ./dist/index.js
