@@ -25,6 +25,10 @@ const commands = [
 	{
 		name: "leave",
 		description: "Leave a channel"
+	},
+	{
+		name: "pause",
+		description: "Pause the music"
 	}
 ] 
 

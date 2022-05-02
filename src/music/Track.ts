@@ -3,6 +3,7 @@ import { getMemberName } from "../utils/utils"
 import "ytsr"
 import ytdl from "ytdl-core"
 import ytsr, { Video } from "ytsr"
+import { Item } from "ytpl"
 
 export default class Track {
 	requester: GuildMember
@@ -80,22 +81,16 @@ export default class Track {
 				this.url = data.url
 			})
 			.catch((error) => console.error(error))
+		return this
 	}
 
-	createFromInfos (
-		thumbnail: string, 
-		title: string,
-		channelName: string,
-		channelUrl: string,
-		duration: string,
-		url: string
-	) {
-		this.thumbnail = thumbnail
-		this.title = title
-		this.channelName = channelName
-		this.channelUrl = channelUrl
-		this.duration = duration
-		this.url = url
+	createFromPlaylistItem (item: Item) {
+		this.thumbnail = item.bestThumbnail.url
+		this.title = item.title
+		this.channelName = item.author.name
+		this.channelUrl = item.author.url
+		this.duration = item.duration
+		this.url = item.url
 	}
 
 

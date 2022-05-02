@@ -19,20 +19,30 @@ client.on("guildDelete", (guild) => {
 client.on("interactionCreate", async interaction => {
 	if (!interaction.isCommand()) {return}
 
-	if (interaction.commandName === "ping") {
-		await interaction.reply("Pong!")
-	}
+	switch (interaction.commandName) {
+	case "ping":
+		interaction.reply("Pong!")
+		break
 
-	if (interaction.commandName === "help") {
-		await interaction.reply("Pong!")
-	}
+	case "help":
+		interaction.reply("Help ! (TODO)")
+		break
 
-	if (interaction.commandName === "play") {
+	case "play":
 		music.handlePlayCommand(interaction)
-	}
+		break
 
-	if (interaction.commandName === "leave") {
+	case "pause":
+		music.pause(interaction.guildId)
+		break
+
+	case "resume":
+		music.resume(interaction.guildId)
+		break
+
+	case "leave":
 		music.leaveChannel(interaction)
+		break
 	}
 })
 

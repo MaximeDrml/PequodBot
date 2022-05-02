@@ -1,13 +1,14 @@
-import { createAudioResource, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice"
+import { AudioPlayerPlayingState, AudioPlayerStatus, createAudioResource, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice"
 import { CommandInteraction, GuildMember, VoiceChannel } from "discord.js"
 import ytdl from "ytdl-core"
 import Player from "./Player"
 import Track from "./Track"
 import { VoiceChannelJoinError } from "../types/Errors"
+import ytpl from "ytpl"
 
 const players: Map<string, Player> = new Map()
 
-export function handlePlayCommand(interaction: CommandInteraction) {
+export async function handlePlayCommand(interaction: CommandInteraction) {
 
 	const requester = interaction.member as GuildMember
 
@@ -24,39 +25,58 @@ export function handlePlayCommand(interaction: CommandInteraction) {
 	interaction.reply("Voice channel joined !")
 	interaction.deleteReply()
 
-	const player = players.get(interaction.guildId)
-
 	const query = interaction.options.get("query").value as string
 	
 	if (query === null) {
-		//TODO Resume if paused
+		resume(interaction.guildId)
+		interaction.reply("Done !")
+		return interaction.deleteReply()
 	}
 
-	//TODO if the query is a YT URL
-	if (query) {
+	await addTrack(query, requester, interaction)
+
+	if (players.get(interaction.guildId).audioPlayer.state.status !== AudioPlayerStatus.Playing) {
+		startPlaying(interaction.guildId)
+	}
+}
+
+async function addTrack(query: string, requester: GuildMember, interaction: CommandInteraction) {
+	const player = players.get(requester.guild.id)
+
+	// Query is a YT URL
+	if (/^(http(s)??:\/\/)?(www\.)?((youtube\.com\/watch\?v=)|(youtu.be\/))([a-zA-Z0-9\-_])+/.test(query)) {
 		const track = new Track(requester)
-		track.createFromUrl(query).then( (track) => {
+		await track.createFromUrl(query).then( (track) => {
 			player.addTrackToQueue(track, false)
-			startPlaying(interaction.guildId)
+			interaction.followUp({ embeds: [ player.queue[0].getEmbed("a ajouté") ] })
+		})
+	// Query is a YT playlist
+	} else if (/^.*(youtu.be\/|list=)([^#&?]*).*/.test(query)) {
+		await ytpl(query).then((playlist) => {
+			playlist.items.map(item => {
+				const track = new Track(requester)
+				track.createFromPlaylistItem(item)
+				player.addTrackToQueue(track, false)
+			})
+			// interaction.followUp({ embeds: [ player.queue[0].getEmbed("a ajouté") ] })
+		})
+	// Query is a search query
+	} else {
+		const track = new Track(requester)
+		await track.createFromSearch(query).then( (track) => {
+			player.addTrackToQueue(track, false)
 			interaction.followUp({ embeds: [ player.queue[0].getEmbed("a ajouté") ] })
 		})
 	}
 }
 
-function startPlaying(guildId: string) {
-	const player = players.get(guildId)
-	const stream = createAudioResource(ytdl(player.queue[0].url, { filter: "audioonly" }))
-	player.audioPlayer.play(stream)
-	getVoiceConnection(guildId).subscribe(player.audioPlayer)
-}
-
-export function leaveChannel(interaction: CommandInteraction) {
-	getVoiceConnection(interaction.guildId).destroy()
-	interaction.reply("Voice channel left !")
-	interaction.deleteReply()
-}
-
 function joinChannel(channel: VoiceChannel) {
+
+	const existingConnection = getVoiceConnection(channel.guildId)
+
+	if (existingConnection && existingConnection.joinConfig.channelId === channel.id) {
+		return
+	}
 
 	if (channel === null) {
 		throw new VoiceChannelJoinError("You are not in a accessible voice channel !") 
@@ -70,14 +90,21 @@ function joinChannel(channel: VoiceChannel) {
 		adapterCreator: channel.guild.voiceAdapterCreator as unknown as DiscordGatewayAdapterCreator
 	})
 
-	players.set(channel.guildId, new Player())
+	if (!existingConnection) {
+		players.set(channel.guildId, new Player())
+	}
 
 	connection.on(VoiceConnectionStatus.Signalling, () => {
 		console.log(`Trying to join a channel on guild ${connection.joinConfig.guildId}...`)
 	})
 
 	connection.on(VoiceConnectionStatus.Ready, () => {
-		console.log("Joinded a channel on guild !")
+		console.log("Joined a channel on guild !")
+	})
+
+	connection.on(VoiceConnectionStatus.Destroyed, () => {
+		console.log(`Left channel on guild ${connection.joinConfig.guildId} !`)
+		players.delete(connection.joinConfig.guildId)
 	})
 
 	connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -93,9 +120,31 @@ function joinChannel(channel: VoiceChannel) {
 			connection.destroy()
 		}
 	})
+}
 
-	connection.on(VoiceConnectionStatus.Destroyed, () => {
-		console.log(`Left channel on guild ${connection.joinConfig.guildId} !`)
-		players.delete(connection.joinConfig.guildId)
-	})
+export function resume(guildId: string){
+	const audioPlayer = players.get(guildId)
+	if (audioPlayer) {
+		players.get(guildId).audioPlayer.unpause()
+	}
+}
+
+export function pause(guildId: string){
+	const audioPlayer = players.get(guildId)
+	if (audioPlayer) {
+		players.get(guildId).audioPlayer.pause()
+	}
+}
+
+function startPlaying(guildId: string) {
+	const player = players.get(guildId)
+	const stream = createAudioResource(ytdl(player.queue[0].url, { filter: "audioonly" }))
+	player.audioPlayer.play(stream)
+	getVoiceConnection(guildId).subscribe(player.audioPlayer)
+}
+
+export function leaveChannel(interaction: CommandInteraction) {
+	getVoiceConnection(interaction.guildId).destroy()
+	interaction.reply("Voice channel left !")
+	interaction.deleteReply()
 }
