@@ -24,13 +24,16 @@ Create a ***.env*** file from ***.env.example***. Enter the followings elements 
 - **GUILD_ID :** The ID of your guild (server) for developpement.
 
 ## Deploy slash commands
+
 ```
-ts-node commands.js
+tsc
+node ./dist/commands.js
 ```
 For developpement, we deploy on a single guild because deploying globally takes 1H.
 
 ## Start the bot
 ```
-nodemon index.ts
+tsc
+nodemon ./dist/index.js
 ```
 
