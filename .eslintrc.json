@@ -47,7 +47,8 @@
         "curly": [
             "error"
         ],
-        "@typescript-eslint/type-annotation-spacing": ["error"]
+        "@typescript-eslint/type-annotation-spacing": ["error"],
+        "space-in-parens":"error"
 
     }
 }

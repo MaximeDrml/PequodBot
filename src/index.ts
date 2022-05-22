@@ -1,10 +1,16 @@
-import { Client, Intents } from "discord.js"
+import { Client, Intents, MessageEmbed } from "discord.js"
 import * as  music from "./music/music"
+import * as feur from "./utils/feur"
 import "dotenv/config"
+import * as db from "./utils/db"
 
-const client = new Client({ intents: [ Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES ] })
+db.initDB()
 
-client.on("ready", () => {
+const client = new Client({ intents: [ Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MESSAGES ] })
+
+// const resetDate = new Date()
+
+client.on("ready", async () => {
 	console.log(`Logged in as ${client.user.tag} ! Currently on ${client.guilds.cache.size} guilds !`)
 })
 
@@ -17,7 +23,7 @@ client.on("guildDelete", (guild) => {
 })
 
 client.on("interactionCreate", async interaction => {
-	if (!interaction.isCommand()) {return}
+	if (!interaction.isCommand()) { return }
 
 	switch (interaction.commandName) {
 	case "ping":
@@ -43,6 +49,29 @@ client.on("interactionCreate", async interaction => {
 	case "leave":
 		music.leaveChannel(interaction)
 		break
+	}
+})
+
+client.on("messageCreate", async message => {
+	if (message.author.bot || message.system) {return}
+
+	if (message.content.trim() === `<@${client.user.id}>`) {
+		const score = feur.getScore(message.member)
+		const embed = new MessageEmbed()
+			.setTitle(`Je t'ai dit "feur" ${score} fois !`)
+			// .setDescription(`Date du dernier reset : ${resetDate.toLocaleString("fr-FR")}`)
+		message.channel.send({ embeds: [ embed ] })
+		return
+	}
+
+	if (/(quoi|koi|quoa|koa|cauha|kwa|qwa|coi)\W*$/gmi.test(message.content)) {
+		// Get random custom emoji from the guild
+		const emojisCollection = await message.guild.emojis.fetch()
+		const randomEmoji = emojisCollection.random()
+		const emoji = randomEmoji ? ` <:${randomEmoji.name}:${randomEmoji.id}>` : ""
+
+		message.channel.send(`feur${emoji}`)
+		feur.incrementScore(message.member)
 	}
 })
 
