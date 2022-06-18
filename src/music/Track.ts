@@ -17,7 +17,7 @@ export default class Track {
 	/**
      * Creates a YtSong object from a query. If the query is a Youtube url, creates a song from it. Else, search the query via YT API and creates a song from the first result.
      * @see YtSong.init to initialize the object
-     * @param {Discord.GuildMember} requestMember - The guild memeber that requested the song
+     * @param {GuildMember} requestMember - The guild memeber that requested the song
      */
 	constructor(requester: GuildMember) {
 		this.requester = requester

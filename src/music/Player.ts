@@ -1,4 +1,4 @@
-import { AudioPlayer, AudioPlayerStatus, createAudioResource, VoiceConnection } from "@discordjs/voice"
+import { AudioPlayer, AudioPlayerStatus, createAudioResource } from "@discordjs/voice"
 import ytdl from "ytdl-core"
 import Track from "./Track"
 
@@ -18,13 +18,19 @@ export default class Player {
 			console.error(error)
 		})
 		
-		this.audioPlayer.on(AudioPlayerStatus.Idle, () => {
+		this.audioPlayer.on(AudioPlayerStatus.Idle, function goToNextTrack() {
 			this.setNextTrack(false)
 			if (this.queue.length > 0) {
-				const ressource = createAudioResource(ytdl(this.queue[0].url, { filter: "audioonly" }))
-				this.audioPlayer.play(ressource)
+				try {
+					const stream = ytdl(this.queue[0].url, { filter: "audioonly" })
+					const ressource = createAudioResource(stream)
+					this.audioPlayer.play(ressource)
+				} catch (error) {
+					console.error(error)
+					goToNextTrack()
+				}
 			} else {
-				this.audioPlayer.playable.map( connection => connection.destroy())
+				this.audioPlayer.playable.map(connection => connection.destroy())
 				this.audioPlayer.stop()
 			}
 		})

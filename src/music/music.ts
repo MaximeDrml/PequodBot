@@ -1,4 +1,4 @@
-import { AudioPlayerPlayingState, AudioPlayerStatus, createAudioResource, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice"
+import { AudioPlayerStatus, createAudioResource, DiscordGatewayAdapterCreator, entersState, getVoiceConnection, joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice"
 import { CommandInteraction, GuildMember, VoiceChannel } from "discord.js"
 import ytdl from "ytdl-core"
 import Player from "./Player"
@@ -46,7 +46,7 @@ async function addTrack(query: string, requester: GuildMember, interaction: Comm
 	// Query is a YT URL
 	if (/^(http(s)??:\/\/)?(www\.)?((youtube\.com\/watch\?v=)|(youtu.be\/))([a-zA-Z0-9\-_])+/.test(query)) {
 		const track = new Track(requester)
-		await track.createFromUrl(query).then( (track) => {
+		await track.createFromUrl(query).then((track) => {
 			player.addTrackToQueue(track, false)
 			interaction.followUp({ embeds: [ player.queue[0].getEmbed("a ajouté") ] })
 		})
@@ -63,7 +63,7 @@ async function addTrack(query: string, requester: GuildMember, interaction: Comm
 	// Query is a search query
 	} else {
 		const track = new Track(requester)
-		await track.createFromSearch(query).then( (track) => {
+		await track.createFromSearch(query).then((track) => {
 			player.addTrackToQueue(track, false)
 			interaction.followUp({ embeds: [ player.queue[0].getEmbed("a ajouté") ] })
 		})
